@@ -9,15 +9,26 @@ const app = express();
 
 const allowedOrigins = [
   "http://localhost:3000",
-  "https://AriefSaiber.github.io",
+  "http://localhost:5173",
+  "https://ariefsaiber.github.io",
 ];
 
-app.use(
-  cors({
-    origin: allowedOrigins,
-    methods: ["POST", "GET"],
-  }),
-);
+const corsOptions = {
+  origin(origin, callback) {
+    // allow requests with no origin, like Postman/curl/health checks
+    if (!origin) return callback(null, true);
+
+    if (allowedOrigins.includes(origin)) {
+      return callback(null, true);
+    }
+
+    return callback(new Error(`CORS blocked for origin: ${origin}`));
+  },
+  methods: ["GET", "POST", "OPTIONS"],
+  allowedHeaders: ["Content-Type"],
+};
+
+app.use(cors(corsOptions));
 
 app.use(express.json());
 
