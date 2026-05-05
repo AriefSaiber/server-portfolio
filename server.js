@@ -1,40 +1,16 @@
 import express from "express";
-import nodemailer from "nodemailer";
 import cors from "cors";
+import { Resend } from "resend";
 import dotenv from "dotenv";
 
 dotenv.config();
 
 const app = express();
 
-const allowedOrigins = [
-  "http://localhost:3000",
-  "http://localhost:5173",
-  "https://ariefsaiber.github.io",
-];
-
-const corsOptions = {
-  origin(origin, callback) {
-    // allow requests with no origin, like Postman/curl/health checks
-    if (!origin) return callback(null, true);
-
-    if (allowedOrigins.includes(origin)) {
-      return callback(null, true);
-    }
-
-    return callback(new Error(`CORS blocked for origin: ${origin}`));
-  },
-  methods: ["GET", "POST", "OPTIONS"],
-  allowedHeaders: ["Content-Type"],
-};
-
-app.use(cors(corsOptions));
-
+app.use(cors());
 app.use(express.json());
 
-app.get("/", (req, res) => {
-  res.send("Portfolio contact backend is running.");
-});
+const resend = new Resend(process.env.RESEND_API_KEY);
 
 app.post("/api/contact", async (req, res) => {
   try {
@@ -42,53 +18,39 @@ app.post("/api/contact", async (req, res) => {
 
     if (!name || !email || !message) {
       return res.status(400).json({
-        success: false,
-        message: "Name, email and message are required.",
+        message: "Name, email, and message are required.",
       });
     }
 
-    const transporter = nodemailer.createTransport({
-      service: "gmail",
-      auth: {
-        user: process.env.EMAIL_USER,
-        pass: process.env.EMAIL_PASS,
-      },
-    });
-
-    await transporter.sendMail({
-      from: `"Portfolio Contact Form" <${process.env.EMAIL_USER}>`,
-      to: process.env.RECEIVER_EMAIL,
-      replyTo: email,
-      subject: `Portfolio Message from ${name}`,
+    const result = await resend.emails.send({
+      from: "Portfolio Contact <onboarding@resend.dev>",
+      to: "ariefsaiber@gmail.com",
+      subject: `New message from ${name}`,
       html: `
-        <h2>New Portfolio Contact Message</h2>
-
+        <h2>New Contact Form Message</h2>
         <p><strong>Name:</strong> ${name}</p>
         <p><strong>Email:</strong> ${email}</p>
-
-        <hr />
-
         <p><strong>Message:</strong></p>
         <p>${message}</p>
       `,
+      replyTo: email,
     });
 
     return res.status(200).json({
-      success: true,
-      message: "Email sent successfully.",
+      message: "Message sent successfully.",
+      data: result,
     });
   } catch (error) {
-    console.error("Email sending error:", error);
+    console.error("Resend email error:", error);
 
     return res.status(500).json({
-      success: false,
-      message: "Failed to send email.",
+      message: "Failed to send message.",
     });
   }
 });
 
-const port = process.env.PORT || 5000;
+const PORT = process.env.PORT || 5000;
 
-app.listen(port, () => {
-  console.log(`Server running on port ${port}`);
+app.listen(PORT, () => {
+  console.log(`Server running on port ${PORT}`);
 });
