@@ -7,7 +7,28 @@ dotenv.config();
 
 const app = express();
 
-app.use(cors());
+const allowedOrigins = [
+  "http://localhost:3000",
+  "https://ariefsaiber.github.io",
+];
+
+app.use(
+  cors({
+    origin(origin, callback) {
+      // Allow Postman/curl/Render health checks with no origin
+      if (!origin) return callback(null, true);
+
+      if (allowedOrigins.includes(origin)) {
+        return callback(null, true);
+      }
+
+      return callback(new Error(`CORS blocked for origin: ${origin}`));
+    },
+    methods: ["GET", "POST", "OPTIONS"],
+    allowedHeaders: ["Content-Type"],
+  }),
+);
+
 app.use(express.json());
 
 const resend = new Resend(process.env.RESEND_API_KEY);
